@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宁波二手房价格预测系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tab-active {
+            border-bottom: 3px solid #3b82f6;
+            color: #3b82f6;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-gray-800">🏠 宁波二手房价格预测系统</h1>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <div class="flex space-x-8 border-b border-gray-200 mb-6">
+            <button id="tab-list" class="py-3 px-4 font-medium tab-active" onclick="showTab('list')">
+                房源列表
+            </button>
+            <button id="tab-predict" class="py-3 px-4 font-medium text-gray-500 hover:text-gray-700" onclick="showTab('predict')">
+                价格预测
+            </button>
+        </div>
+
+        <div id="list-panel">
+            <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+                <div class="flex flex-wrap gap-4 items-end">
+                    <div class="flex-1 min-w-[200px]">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">搜索</label>
+                        <input type="text" id="search-input" placeholder="搜索小区或区域..." 
+                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div class="min-w-[150px]">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">区域</label>
+                        <select id="district-select" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">全部区域</option>
+                        </select>
+                    </div>
+                    <button onclick="loadHouses(1)" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                        搜索
+                    </button>
+                </div>
+            </div>
+
+            <div id="houses-container" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            </div>
+
+            <div id="pagination" class="flex justify-center items-center space-x-2 mt-6">
+            </div>
+        </div>
+
+        <div id="predict-panel" class="hidden">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-6">二手房价格预测</h2>
+                
+                <form id="predict-form" class="space-y-6">
+                    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">单价 (元/平米)</label>
+                            <input type="number" id="单价" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">建筑面积 (㎡)</label>
+                            <input type="number" step="0.01" id="建筑面积" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">总楼层数</label>
+                            <input type="number" id="总楼层数" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">室数</label>
+                            <input type="number" id="室数" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">厅数</label>
+                            <input type="number" id="厅数" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">卫数</label>
+                            <input type="number" id="卫数" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">区</label>
+                            <select id="区" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">板块</label>
+                            <select id="板块" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">楼层位置</label>
+                            <select id="楼层位置" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">房屋朝向</label>
+                            <select id="房屋朝向" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">装修情况</label>
+                            <select id="装修情况" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">建筑类型</label>
+                            <select id="建筑类型" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">建筑结构</label>
+                            <select id="建筑结构" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">交易权属</label>
+                            <select id="交易权属" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">房屋用途</label>
+                            <select id="房屋用途" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">配备电梯</label>
+                            <select id="配备电梯" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">产权所属</label>
+                            <select id="产权所属" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
+                        </div>
+                    </div>
+                    
+                    <div class="flex justify-center">
+                        <button type="submit" id="predict-btn" class="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                            预测价格
+                        </button>
+                    </div>
+                </form>
+
+                <div id="prediction-result" class="hidden mt-8 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
+                    <h3 class="text-lg font-bold text-gray-800 mb-2">预测结果</h3>
+                    <p class="text-3xl font-bold text-green-600" id="predicted-price"></p>
+                    <p class="text-sm text-gray-600 mt-2" id="model-used"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let featureOptions = {};
+
+        async function loadDistricts() {
+            try {
+                const response = await fetch('/api/districts');
+                const districts = await response.json();
+                const select = document.getElementById('district-select');
+                districts.forEach(d => {
+                    const option = document.createElement('option');
+                    option.value = d;
+                    option.textContent = d;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('加载区域失败:', error);
+            }
+        }
+
+        async function loadFeatureOptions() {
+            try {
+                const response = await fetch('/api/feature-options');
+                featureOptions = await response.json();
+                
+                for (const [feature, options] of Object.entries(featureOptions)) {
+                    const select = document.getElementById(feature);
+                    if (select) {
+                        options.forEach(opt => {
+                            const option = document.createElement('option');
+                            option.value = opt;
+                            option.textContent = opt;
+                            select.appendChild(option);
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('加载特征选项失败:', error);
+            }
+        }
+
+        async function loadHouses(page = 1) {
+            currentPage = page;
+            const search = document.getElementById('search-input').value;
+            const district = document.getElementById('district-select').value;
+            
+            const container = document.getElementById('houses-container');
+            container.innerHTML = '<div class="col-span-full text-center py-8"><span class="loading"></span></div>';
+            
+            try {
+                let url = `/api/houses?page=${page}`;
+                if (search) url += `&search=${encodeURIComponent(search)}`;
+                if (district) url += `&district=${encodeURIComponent(district)}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.houses.length === 0) {
+                    container.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500">暂无房源数据</div>';
+                } else {
+                    container.innerHTML = data.houses.map(house => `
+                        <div class="bg-white rounded-lg shadow-md overflow-hidden card-hover transition-all duration-300">
+                            <div class="p-4">
+                                <h3 class="text-lg font-bold text-gray-800 mb-2">${house['小区名称'] || '未知小区'}</h3>
+                                <div class="text-2xl font-bold text-red-500 mb-2">${house['总价'] || '待定'}</div>
+                                <p class="text-sm text-gray-500 mb-3">${house['单价'] || ''} · ${house['建筑面积'] || ''}</p>
+                                <div class="flex flex-wrap gap-2 text-sm">
+                                    <span class="px-2 py-1 bg-gray-100 rounded">${house['房屋户型'] || '未知户型'}</span>
+                                    <span class="px-2 py-1 bg-gray-100 rounded">${house['所在区域'] || '未知区域'}</span>
+                                    <span class="px-2 py-1 bg-gray-100 rounded">${house['装修情况'] || '未知装修'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                
+                renderPagination(data);
+            } catch (error) {
+                container.innerHTML = '<div class="col-span-full text-center py-8 text-red-500">加载失败，请重试</div>';
+                console.error('加载房源失败:', error);
+            }
+        }
+
+        function renderPagination(data) {
+            const pagination = document.getElementById('pagination');
+            let html = '';
+            
+            if (data.page > 1) {
+                html += `<button onclick="loadHouses(${data.page - 1})" class="px-3 py-1 border rounded hover:bg-gray-100">上一页</button>`;
+            }
+            
+            html += `<span class="px-3 py-1">第 ${data.page} / ${data.total_pages} 页，共 ${data.total} 条</span>`;
+            
+            if (data.page < data.total_pages) {
+                html += `<button onclick="loadHouses(${data.page + 1})" class="px-3 py-1 border rounded hover:bg-gray-100">下一页</button>`;
+            }
+            
+            pagination.innerHTML = html;
+        }
+
+        function showTab(tab) {
+            const listPanel = document.getElementById('list-panel');
+            const predictPanel = document.getElementById('predict-panel');
+            const tabList = document.getElementById('tab-list');
+            const tabPredict = document.getElementById('tab-predict');
+            
+            if (tab === 'list') {
+                listPanel.classList.remove('hidden');
+                predictPanel.classList.add('hidden');
+                tabList.classList.add('tab-active');
+                tabPredict.classList.remove('tab-active');
+                tabPredict.classList.add('text-gray-500');
+            } else {
+                listPanel.classList.add('hidden');
+                predictPanel.classList.remove('hidden');
+                tabPredict.classList.add('tab-active');
+                tabList.classList.remove('tab-active');
+                tabList.classList.add('text-gray-500');
+            }
+        }
+
+        document.getElementById('predict-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const btn = document.getElementById('predict-btn');
+            const resultDiv = document.getElementById('prediction-result');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> 预测中...';
+            resultDiv.classList.add('hidden');
+            
+            try {
+                const formData = {
+                    单价: parseFloat(document.getElementById('单价').value),
+                    建筑面积: parseFloat(document.getElementById('建筑面积').value),
+                    总楼层数: parseInt(document.getElementById('总楼层数').value),
+                    室数: parseInt(document.getElementById('室数').value),
+                    厅数: parseInt(document.getElementById('厅数').value),
+                    卫数: parseInt(document.getElementById('卫数').value),
+                    区: document.getElementById('区').value,
+                    板块: document.getElementById('板块').value,
+                    楼层位置: document.getElementById('楼层位置').value,
+                    房屋朝向: document.getElementById('房屋朝向').value,
+                    装修情况: document.getElementById('装修情况').value,
+                    建筑类型: document.getElementById('建筑类型').value,
+                    建筑结构: document.getElementById('建筑结构').value,
+                    交易权属: document.getElementById('交易权属').value,
+                    房屋用途: document.getElementById('房屋用途').value,
+                    配备电梯: document.getElementById('配备电梯').value,
+                    产权所属: document.getElementById('产权所属').value
+                };
+                
+                const response = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.error) {
+                    alert('预测失败: ' + result.error);
+                } else {
+                    document.getElementById('predicted-price').textContent = '预测价格: ' + result.predicted_price_wan;
+                    document.getElementById('model-used').textContent = '使用模型: ' + result.model_used;
+                    resultDiv.classList.remove('hidden');
+                }
+            } catch (error) {
+                alert('预测失败: ' + error.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '预测价格';
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDistricts();
+            loadFeatureOptions();
+            loadHouses(1);
+        });
+    </script>
+</body>
+</html>
