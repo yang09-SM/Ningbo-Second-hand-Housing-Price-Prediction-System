@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>宁波二手房价格预测系统</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
     <style>
         .tab-active {
             border-bottom: 3px solid #3b82f6;
             color: #3b82f6;
+            background-color: #eff6ff;
         }
         .card-hover:hover {
             transform: translateY(-2px);
@@ -27,157 +29,414 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 28px -8px rgba(0, 0, 0, 0.15);
+        }
+        .chart-container {
+            width: 100%;
+            min-height: 400px;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.95);
+        }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
-    <nav class="bg-white shadow-lg">
-        <div class="max-w-7xl mx-auto px-4">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <h1 class="text-2xl font-bold text-gray-800">🏠 宁波二手房价格预测系统</h1>
+    <!-- 导航栏 -->
+    <nav class="bg-white shadow-lg sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center space-x-3">
+                    <span class="text-2xl">🏠</span>
+                    <h1 class="text-xl font-bold text-gray-800">宁波二手房价格预测系统</h1>
+                </div>
+                <div id="user-area" class="flex items-center gap-3">
+                    <!-- 动态渲染用户状态 -->
                 </div>
             </div>
         </div>
     </nav>
 
+    <!-- 主内容区 -->
     <div class="max-w-7xl mx-auto px-4 py-6">
-        <div class="flex space-x-8 border-b border-gray-200 mb-6">
-            <button id="tab-list" class="py-3 px-4 font-medium tab-active" onclick="showTab('list')">
-                房源列表
+        <!-- Tab 导航 -->
+        <div class="flex space-x-1 border-b border-gray-200 mb-6 overflow-x-auto">
+            <button id="tab-dashboard" class="py-3 px-5 font-medium tab-active whitespace-nowrap rounded-t-lg transition-all" onclick="showTab('dashboard')">
+                📊 数据概览
             </button>
-            <button id="tab-predict" class="py-3 px-4 font-medium text-gray-500 hover:text-gray-700" onclick="showTab('predict')">
-                价格预测
+            <button id="tab-list" class="py-3 px-5 font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 whitespace-nowrap rounded-t-lg transition-all" onclick="showTab('list')">
+                🏘️ 房源管理
+            </button>
+            <button id="tab-predict" class="py-3 px-5 font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 whitespace-nowrap rounded-t-lg transition-all" onclick="showTab('predict')">
+                🎯 智能预测
+            </button>
+            <button id="tab-model" class="py-3 px-5 font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 whitespace-nowrap rounded-t-lg transition-all" onclick="showTab('model')">
+                🔬 模型分析
             </button>
         </div>
 
-        <div id="list-panel">
-            <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+        <!-- ========== Tab 1: 数据概览仪表盘 ========== -->
+        <div id="dashboard-panel">
+            <!-- 关键指标卡片 -->
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+                <div class="stat-card bg-white rounded-xl shadow-md p-5 border-l-4 border-blue-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 mb-1">总房源数</p>
+                            <p class="text-2xl font-bold text-blue-600" id="stat-total">-</p>
+                        </div>
+                        <div class="text-3xl opacity-80">📋</div>
+                    </div>
+                </div>
+                <div class="stat-card bg-white rounded-xl shadow-md p-5 border-l-4 border-green-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 mb-1">平均价格</p>
+                            <p class="text-2xl font-bold text-green-600" id="stat-avg-price">-</p>
+                        </div>
+                        <div class="text-3xl opacity-80">💰</div>
+                    </div>
+                </div>
+                <div class="stat-card bg-white rounded-xl shadow-md p-5 border-l-4 border-orange-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 mb-1">中位数价格</p>
+                            <p class="text-2xl font-bold text-orange-600" id="stat-median-price">-</p>
+                        </div>
+                        <div class="text-3xl opacity-80">📊</div>
+                    </div>
+                </div>
+                <div class="stat-card bg-white rounded-xl shadow-md p-5 border-l-4 border-purple-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 mb-1">平均单价</p>
+                            <p class="text-2xl font-bold text-purple-600" id="stat-avg-unit">-</p>
+                        </div>
+                        <div class="text-3xl opacity-80">📐</div>
+                    </div>
+                </div>
+                <div class="stat-card bg-white rounded-xl shadow-md p-5 border-l-4 border-red-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 mb-1">区域数量</p>
+                            <p class="text-2xl font-bold text-red-600" id="stat-districts">-</p>
+                        </div>
+                        <div class="text-3xl opacity-80">🗺️</div>
+                    </div>
+                </div>
+                <div class="stat-card bg-white rounded-xl shadow-md p-5 border-l-4 border-cyan-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 mb-1">模型 R²</p>
+                            <p class="text-2xl font-bold text-cyan-600" id="stat-r2">-</p>
+                        </div>
+                        <div class="text-3xl opacity-80">🎯</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 图表区域 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <!-- 区域房价热力图 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <span class="mr-2">🗺️</span> 区域房价热力图
+                    </h3>
+                    <div id="heatmap-chart" class="chart-container" style="height: 400px;"></div>
+                </div>
+
+                <!-- 价格分布直方图 -->
+                <div class="bg-white rounded-xl shadow-md p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                        <span class="mr-2">📈</span> 价格分布直方图
+                    </h3>
+                    <div id="distribution-chart" class="chart-container" style="height: 400px;"></div>
+                </div>
+            </div>
+
+            <!-- 各区域价格概况表格 -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <span class="mr-2">💹</span> 各区域价格概况
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700">区域</th>
+                                <th class="px-4 py-3 text-right font-semibold text-gray-700">均价(万)</th>
+                                <th class="px-4 py-3 text-right font-semibold text-gray-700">最低价(万)</th>
+                                <th class="px-4 py-3 text-right font-semibold text-gray-700">最高价(万)</th>
+                                <th class="px-4 py-3 text-right font-semibold text-gray-700">房源数量</th>
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700">占比</th>
+                            </tr>
+                        </thead>
+                        <tbody id="districts-table-body">
+                            <tr><td colspan="6" class="text-center py-8 text-gray-500">加载中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== Tab 2: 房源数据管理 ========== -->
+        <div id="list-panel" class="hidden">
+            <div class="bg-white rounded-xl shadow-md p-6 mb-6">
                 <div class="flex flex-wrap gap-4 items-end">
                     <div class="flex-1 min-w-[200px]">
                         <label class="block text-sm font-medium text-gray-700 mb-1">搜索</label>
-                        <input type="text" id="search-input" placeholder="搜索小区或区域..." 
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="text" id="search-input" placeholder="搜索小区或区域..."
+                               class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
                     </div>
                     <div class="min-w-[150px]">
                         <label class="block text-sm font-medium text-gray-700 mb-1">区域</label>
-                        <select id="district-select" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <select id="district-select" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
                             <option value="">全部区域</option>
                         </select>
                     </div>
-                    <button onclick="loadHouses(1)" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
-                        搜索
+                    <button onclick="loadHouses(1)" class="px-6 py-2.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium transition-all transform hover:scale-105">
+                        🔍 搜索
                     </button>
-                    <button onclick="openModal()" class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">
-                        + 新增房源
+                    <button id="btn-add-house" onclick="openModal()" class="px-6 py-2.5 bg-green-500 text-white rounded-lg hover:bg-green-600 font-medium transition-all transform hover:scale-105 hidden">
+                        ➕ 新增房源
                     </button>
                 </div>
             </div>
 
-            <div id="houses-container" class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div id="houses-container" class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             </div>
 
-            <div id="pagination" class="flex justify-center items-center space-x-2 mt-6">
+            <div id="pagination" class="flex justify-center items-center space-x-2 mt-8">
             </div>
         </div>
 
+        <!-- ========== Tab 3: 智能房价预测 ========== -->
         <div id="predict-panel" class="hidden">
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-xl font-bold text-gray-800 mb-6">二手房价格预测</h2>
-                
-                <form id="predict-form" class="space-y-6">
-                    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">单价 (元/平米)</label>
-                            <input type="number" id="单价" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">建筑面积 (㎡)</label>
-                            <input type="number" step="0.01" id="建筑面积" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">总楼层数</label>
-                            <input type="number" id="总楼层数" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">室数</label>
-                            <input type="number" id="室数" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">厅数</label>
-                            <input type="number" id="厅数" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">卫数</label>
-                            <input type="number" id="卫数" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">区</label>
-                            <select id="区" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">板块</label>
-                            <select id="板块" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">楼层位置</label>
-                            <select id="楼层位置" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">房屋朝向</label>
-                            <select id="房屋朝向" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">装修情况</label>
-                            <select id="装修情况" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">建筑类型</label>
-                            <select id="建筑类型" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">建筑结构</label>
-                            <select id="建筑结构" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">交易权属</label>
-                            <select id="交易权属" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">房屋用途</label>
-                            <select id="房屋用途" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">配备电梯</label>
-                            <select id="配备电梯" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">产权所属</label>
-                            <select id="产权所属" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></select>
-                        </div>
-                    </div>
-                    
-                    <div class="flex justify-center">
-                        <button type="submit" id="predict-btn" class="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                            预测价格
-                        </button>
-                    </div>
-                </form>
+            <div class="max-w-5xl mx-auto">
+                <div class="bg-white rounded-xl shadow-md p-8">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+                        <span class="mr-3 text-3xl">🎯</span> 二手房智能价格预测
+                    </h2>
 
-                <div id="prediction-result" class="hidden mt-8 p-6 bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200">
-                    <h3 class="text-lg font-bold text-gray-800 mb-2">预测结果</h3>
-                    <p class="text-3xl font-bold text-green-600" id="predicted-price"></p>
-                    <p class="text-sm text-gray-600 mt-2" id="model-used"></p>
+                    <form id="predict-form" class="space-y-6">
+                        <!-- 基本信息 -->
+                        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-5 mb-6">
+                            <h3 class="font-semibold text-gray-700 mb-4 flex items-center">
+                                <span class="mr-2">📝</span> 基本信息
+                            </h3>
+                            <div class="grid gap-4 md:grid-cols-3">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">单价 (元/㎡) *</label>
+                                    <input type="number" id="单价" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">建筑面积 (㎡) *</label>
+                                    <input type="number" step="0.01" id="建筑面积" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">总楼层数 *</label>
+                                    <input type="number" id="总楼层数" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">室数 *</label>
+                                    <input type="number" id="室数" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">厅数 *</label>
+                                    <input type="number" id="厅数" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">卫数 *</label>
+                                    <input type="number" id="卫数" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 区域信息（联动选择） -->
+                        <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-5 mb-6">
+                            <h3 class="font-semibold text-gray-700 mb-4 flex items-center">
+                                <span class="mr-2">📍</span> 区域信息
+                            </h3>
+                            <div class="grid gap-4 md:grid-cols-2">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">区 *</label>
+                                    <select id="区" onchange="updatePlateOptions()" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">请选择</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">板块 *</label>
+                                    <select id="板块" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        <option value="">请先选择区</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 房屋特征 -->
+                        <div class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-5 mb-6">
+                            <h3 class="font-semibold text-gray-700 mb-4 flex items-center">
+                                <span class="mr-2">🏠</span> 房屋特征
+                            </h3>
+                            <div class="grid gap-4 md:grid-cols-3 lg:grid-cols-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">楼层位置</label>
+                                    <select id="楼层位置" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">房屋朝向</label>
+                                    <select id="房屋朝向" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">装修情况</label>
+                                    <select id="装修情况" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">建筑类型</label>
+                                    <select id="建筑类型" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">建筑结构</label>
+                                    <select id="建筑结构" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">交易权属</label>
+                                    <select id="交易权属" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">房屋用途</label>
+                                    <select id="房屋用途" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">配备电梯</label>
+                                    <select id="配备电梯" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">产权所属</label>
+                                    <select id="产权所属" class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-center pt-4">
+                            <button type="submit" id="predict-btn" class="px-10 py-3.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transform hover:scale-105 transition-all shadow-lg">
+                                🚀 开始预测
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- 预测结果面板 -->
+                    <div id="prediction-result" class="hidden mt-8">
+                        <div class="bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 rounded-xl border-2 border-green-200 p-8 text-center">
+                            <h3 class="text-lg font-semibold text-gray-700 mb-3">✨ 预测结果</h3>
+                            <p class="text-5xl font-black text-green-600 mb-3" id="predicted-price"></p>
+                            <p class="text-base text-gray-600 mb-6" id="model-used"></p>
+
+                            <button onclick="showPredictionExplanation()" id="explain-btn" class="px-8 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-xl hover:from-purple-600 hover:to-pink-600 transform hover:scale-105 transition-all shadow-lg">
+                                🤖 查看 AI 解释
+                            </button>
+                        </div>
+
+                        <!-- SHAP 解释面板 -->
+                        <div id="explanation-panel" class="hidden mt-6 bg-white rounded-xl border border-gray-200 p-6">
+                            <h4 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                                <span class="mr-2">🔍</span> AI 归因分析
+                            </h4>
+
+                            <!-- 影响因素 Top-5 排行 -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                                <div class="bg-red-50 rounded-lg p-5">
+                                    <h5 class="font-semibold text-red-700 mb-3 flex items-center">
+                                        <span class="mr-2">⬆️</span> 正向影响因素 Top 5
+                                    </h5>
+                                    <div id="positive-factors" class="space-y-2"></div>
+                                </div>
+                                <div class="bg-blue-50 rounded-lg p-5">
+                                    <h5 class="font-semibold text-blue-700 mb-3 flex items-center">
+                                        <span class="mr-2">⬇️</span> 负向影响因素 Top 5
+                                    </h5>
+                                    <div id="negative-factors" class="space-y-2"></div>
+                                </div>
+                            </div>
+
+                            <!-- SHAP 瀑布图 -->
+                            <div class="mt-6">
+                                <h5 class="font-semibold text-gray-700 mb-3">特征贡献度可视化</h5>
+                                <div id="shap-chart" style="height: 350px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== Tab 4: 模型分析中心 ========== -->
+        <div id="model-panel" class="hidden">
+            <!-- 模型性能对比 -->
+            <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <span class="mr-2">📊</span> 模型性能对比
+                </h3>
+                <div id="model-comparison-chart" class="chart-container" style="height: 450px;"></div>
+            </div>
+
+            <!-- 预测 vs 实际散点图 -->
+            <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <span class="mr-2">🎯</span> 预测值 vs 实际值 散点图
+                </h3>
+                <div id="scatter-chart" class="chart-container" style="height: 450px;"></div>
+            </div>
+
+            <!-- SHAP 全局特征重要性 -->
+            <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <span class="mr-2">🔬</span> SHAP 全局特征重要性
+                </h3>
+                <div id="shap-global-chart" class="chart-container" style="height: 500px;"></div>
+            </div>
+
+            <!-- 模型指标对比表格 -->
+            <div class="bg-white rounded-xl shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                    <span class="mr-2">📋</span> 各模型详细指标对比
+                </h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700">模型名称</th>
+                                <th class="px-4 py-3 text-right font-semibold text-gray-700">R² Score</th>
+                                <th class="px-4 py-3 text-right font-semibold text-gray-700">MSE</th>
+                                <th class="px-4 py-3 text-right font-semibold text-gray-700">MAE</th>
+                                <th class="px-4 py-3 text-right font-semibold text-gray-700">RMSE</th>
+                                <th class="px-4 py-3 text-left font-semibold text-gray-700">训练时间(s)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="model-table-body">
+                            <tr><td colspan="6" class="text-center py-8 text-gray-500">加载中...</td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- 房源编辑模态框 -->
     <div id="house-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
             <div class="p-6">
                 <div class="flex justify-between items-center mb-6">
                     <h2 id="modal-title" class="text-xl font-bold text-gray-800">新增房源</h2>
-                    <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
                 </div>
                 <form id="house-form" class="space-y-4">
                     <div class="grid gap-4 md:grid-cols-2">
@@ -287,10 +546,10 @@
                         </div>
                     </div>
                     <div class="flex gap-4 pt-4">
-                        <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50">
+                        <button type="button" onclick="closeModal()" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 font-medium">
                             取消
                         </button>
-                        <button type="submit" id="submit-btn" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                        <button type="submit" id="submit-btn" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 font-medium">
                             保存
                         </button>
                     </div>
@@ -299,15 +558,195 @@
         </div>
     </div>
 
+    <!-- 登录模态框 -->
+    <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4">
+            <div class="p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">🔐 用户登录</h2>
+                    <button onclick="closeLoginModal()" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                </div>
+                <form id="login-form" class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+                        <input type="text" id="login-username" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="请输入用户名">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">密码</label>
+                        <input type="password" id="login-password" required class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="请输入密码">
+                    </div>
+                    <div id="login-error" class="hidden text-red-500 text-sm bg-red-50 p-3 rounded-lg"></div>
+                    <button type="submit" id="login-btn" class="w-full px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-semibold transition-all transform hover:scale-[1.02]">
+                        登录
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // ===== 全局变量 =====
+        let currentUser = null;
         let currentPage = 1;
         let featureOptions = {};
         let editingHouseId = null;
+        let currentPredictionData = null; // 存储当前预测的输入数据，用于SHAP解释
+        let chartInstances = {}; // 存储所有ECharts实例
 
+        // ===== 用户认证相关 =====
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/current-user');
+                currentUser = await response.json();
+            } catch (error) {
+                currentUser = null;
+            }
+            renderUserArea();
+        }
+
+        function renderUserArea() {
+            const area = document.getElementById('user-area');
+            if (!currentUser || !currentUser.username) {
+                area.innerHTML = `<button onclick="openLoginModal()" class="px-5 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium transition-all transform hover:scale-105">登录</button>`;
+            } else {
+                const roleLabel = currentUser.role === 'admin' ? '管理员' : '普通用户';
+                area.innerHTML = `
+                    <span class="text-sm text-gray-600 font-medium">${currentUser.username} (${roleLabel})</span>
+                    <button onclick="doLogout()" class="px-5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-all">登出</button>
+                `;
+            }
+
+            const addBtn = document.getElementById('btn-add-house');
+            if (addBtn) {
+                addBtn.style.display = isAdmin() ? '' : 'none';
+            }
+        }
+
+        function openLoginModal() {
+            document.getElementById('login-modal').classList.remove('hidden');
+            document.getElementById('login-modal').classList.add('flex');
+            document.getElementById('login-error').classList.add('hidden');
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+        }
+
+        function closeLoginModal() {
+            document.getElementById('login-modal').classList.add('hidden');
+            document.getElementById('login-modal').remove('flex');
+        }
+
+        async function doLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('login-btn');
+            const errorEl = document.getElementById('login-error');
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading mr-2"></span>登录中...';
+            errorEl.classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: document.getElementById('login-username').value,
+                        password: document.getElementById('login-password').value
+                    })
+                });
+
+                if (response.ok) {
+                    currentUser = await response.json();
+                    closeLoginModal();
+                    renderUserArea();
+                    loadHouses(currentPage);
+                } else {
+                    const data = await response.json();
+                    errorEl.textContent = data.error || '登录失败';
+                    errorEl.classList.remove('hidden');
+                }
+            } catch (error) {
+                errorEl.textContent = '登录失败: ' + error.message;
+                errorEl.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '登录';
+            }
+        }
+
+        async function doLogout() {
+            try {
+                await fetch('/api/logout', { method: 'POST' });
+                currentUser = null;
+                renderUserArea();
+                loadHouses(currentPage);
+            } catch (error) {
+                console.error('登出失败:', error);
+            }
+        }
+
+        function isAdmin() {
+            return currentUser && currentUser.role === 'admin';
+        }
+
+        // ===== Tab 切换逻辑 =====
+        function showTab(tab) {
+            // 所有面板和按钮
+            const panels = ['dashboard-panel', 'list-panel', 'predict-panel', 'model-panel'];
+            const tabs = ['tab-dashboard', 'tab-list', 'tab-predict', 'tab-model'];
+
+            // 隐藏所有面板
+            panels.forEach(p => {
+                const el = document.getElementById(p);
+                if (el) el.classList.add('hidden');
+            });
+
+            // 重置所有 tab 样式
+            tabs.forEach(t => {
+                const el = document.getElementById(t);
+                if (el) {
+                    el.classList.remove('tab-active');
+                    el.classList.add('text-gray-500');
+                }
+            });
+
+            // 显示目标面板
+            const targetPanel = document.getElementById(tab + '-panel');
+            if (targetPanel) targetPanel.classList.remove('hidden');
+
+            // 激活目标 tab
+            const targetTab = document.getElementById('tab-' + tab);
+            if (targetTab) {
+                targetTab.classList.add('tab-active');
+                targetTab.classList.remove('text-gray-500');
+            }
+
+            // 懒加载图表
+            if (tab === 'dashboard') {
+                loadDashboardData();
+            } else if (tab === 'model') {
+                loadModelAnalysisData();
+            }
+        }
+
+        // ===== API 调用封装 =====
+        async function apiCall(url, options = {}) {
+            try {
+                const response = await fetch(url, options);
+                const data = await response.json();
+                if (!response.ok) {
+                    throw new Error(data.error || data.message || '请求失败');
+                }
+                return data;
+            } catch (error) {
+                console.error(`API 调用失败 [${url}]:`, error);
+                throw error;
+            }
+        }
+
+        // ===== 数据加载函数 =====
         async function loadDistricts() {
             try {
-                const response = await fetch('/api/districts');
-                const districts = await response.json();
+                const districts = await apiCall('/api/districts');
                 const select = document.getElementById('district-select');
                 districts.forEach(d => {
                     const option = document.createElement('option');
@@ -322,12 +761,11 @@
 
         async function loadFeatureOptions() {
             try {
-                const response = await fetch('/api/feature-options');
-                featureOptions = await response.json();
-                
+                featureOptions = await apiCall('/api/feature-options');
+
                 for (const [feature, options] of Object.entries(featureOptions)) {
                     const select = document.getElementById(feature);
-                    if (select) {
+                    if (select && feature !== '板块') { // 板块需要联动，单独处理
                         options.forEach(opt => {
                             const option = document.createElement('option');
                             option.value = opt;
@@ -341,155 +779,712 @@
             }
         }
 
+        // 区→板块联动
+        function updatePlateOptions() {
+            const district = document.getElementById('区').value;
+            const plateSelect = document.getElementById('板块');
+
+            plateSelect.innerHTML = '<option value="">请选择</option>';
+
+            if (!district || !featureOptions['板块']) return;
+
+            // 根据选中的区过滤板块选项（这里假设板块选项包含区信息或使用全部板块）
+            const plates = featureOptions['板块'];
+            plates.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt;
+                option.textContent = opt;
+                plateSelect.appendChild(option);
+            });
+        }
+
         async function loadHouses(page = 1) {
             currentPage = page;
             const search = document.getElementById('search-input').value;
             const district = document.getElementById('district-select').value;
-            
+
             const container = document.getElementById('houses-container');
-            container.innerHTML = '<div class="col-span-full text-center py-8"><span class="loading"></span></div>';
-            
+            container.innerHTML = '<div class="col-span-full text-center py-12"><span class="loading"></span><p class="mt-3 text-gray-500">加载中...</p></div>';
+
             try {
                 let url = `/api/houses?page=${page}`;
                 if (search) url += `&search=${encodeURIComponent(search)}`;
                 if (district) url += `&district=${encodeURIComponent(district)}`;
-                
-                const response = await fetch(url);
-                const data = await response.json();
-                
+
+                const data = await apiCall(url);
+
                 if (data.houses.length === 0) {
-                    container.innerHTML = '<div class="col-span-full text-center py-8 text-gray-500">暂无房源数据</div>';
+                    container.innerHTML = `
+                        <div class="col-span-full text-center py-16">
+                            <div class="text-6xl mb-4">🏠</div>
+                            <p class="text-gray-500 text-lg">暂无房源数据</p>
+                        </div>
+                    `;
                 } else {
                     container.innerHTML = data.houses.map(house => `
-                        <div class="bg-white rounded-lg shadow-md overflow-hidden card-hover transition-all duration-300">
-                            <div class="p-4">
-                                <h3 class="text-lg font-bold text-gray-800 mb-2">${house['小区名称'] || '未知小区'}</h3>
-                                <div class="text-2xl font-bold text-red-500 mb-2">${house['总价'] || '待定'}</div>
-                                <p class="text-sm text-gray-500 mb-3">${house['单价'] || ''} · ${house['建筑面积'] || ''}</p>
-                                <div class="flex flex-wrap gap-2 text-sm mb-4">
-                                    <span class="px-2 py-1 bg-gray-100 rounded">${house['房屋户型'] || '未知户型'}</span>
-                                    <span class="px-2 py-1 bg-gray-100 rounded">${house['所在区域'] || '未知区域'}</span>
-                                    <span class="px-2 py-1 bg-gray-100 rounded">${house['装修情况'] || '未知装修'}</span>
+                        <div class="bg-white rounded-xl shadow-md overflow-hidden card-hover transition-all duration-300 border border-gray-100">
+                            <div class="p-5">
+                                <div class="flex justify-between items-start mb-3">
+                                    <h3 class="text-lg font-bold text-gray-800">${house['小区名称'] || '未知小区'}</h3>
+                                    <span class="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">${house['所在区域'] || '未知'}</span>
                                 </div>
-                                <div class="flex gap-2">
-                                    <button onclick="openModal(${house.id})" class="flex-1 px-3 py-1 bg-blue-500 text-white text-sm rounded hover:bg-blue-600">
-                                        编辑
+                                <div class="text-3xl font-black text-red-500 mb-3">${house['总价'] || '待定'}</div>
+                                <p class="text-sm text-gray-500 mb-4">${house['单价'] || ''} · ${house['建筑面积'] || ''}</p>
+                                <div class="flex flex-wrap gap-2 text-xs mb-4">
+                                    <span class="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full">${house['房屋户型'] || '未知户型'}</span>
+                                    <span class="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full">${house['装修情况'] || '未知装修'}</span>
+                                    <span class="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full">${house['建筑类型'] || '-'}</span>
+                                </div>
+                                ${isAdmin() ? `
+                                <div class="flex gap-2 pt-3 border-t border-gray-100">
+                                    <button onclick="openModal(${house.id})" class="flex-1 px-3 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 font-medium transition-all">
+                                        ✏️ 编辑
                                     </button>
-                                    <button onclick="deleteHouse(${house.id})" class="flex-1 px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600">
-                                        删除
+                                    <button onclick="deleteHouse(${house.id})" class="flex-1 px-3 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 font-medium transition-all">
+                                        🗑️ 删除
                                     </button>
                                 </div>
+                                ` : ''}
                             </div>
                         </div>
                     `).join('');
                 }
-                
+
                 renderPagination(data);
             } catch (error) {
-                container.innerHTML = '<div class="col-span-full text-center py-8 text-red-500">加载失败，请重试</div>';
-                console.error('加载房源失败:', error);
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <div class="text-5xl mb-4">❌</div>
+                        <p class="text-red-500">加载失败，请重试</p>
+                    </div>
+                `;
             }
         }
 
         function renderPagination(data) {
             const pagination = document.getElementById('pagination');
             let html = '';
-            
+
             if (data.page > 1) {
-                html += `<button onclick="loadHouses(${data.page - 1})" class="px-3 py-1 border rounded hover:bg-gray-100">上一页</button>`;
+                html += `<button onclick="loadHouses(${data.page - 1})" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-all">上一页</button>`;
             }
-            
-            html += `<span class="px-3 py-1">第 ${data.page} / ${data.total_pages} 页，共 ${data.total} 条</span>`;
-            
+
+            html += `<span class="px-4 py-2 text-gray-600">第 ${data.page} / ${data.total_pages} 页，共 ${data.total} 条</span>`;
+
             if (data.page < data.total_pages) {
-                html += `<button onclick="loadHouses(${data.page + 1})" class="px-3 py-1 border rounded hover:bg-gray-100">下一页</button>`;
+                html += `<button onclick="loadHouses(${data.page + 1})" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-all">下一页</button>`;
             }
-            
+
             pagination.innerHTML = html;
         }
 
-        function showTab(tab) {
-            const listPanel = document.getElementById('list-panel');
-            const predictPanel = document.getElementById('predict-panel');
-            const tabList = document.getElementById('tab-list');
-            const tabPredict = document.getElementById('tab-predict');
-            
-            if (tab === 'list') {
-                listPanel.classList.remove('hidden');
-                predictPanel.classList.add('hidden');
-                tabList.classList.add('tab-active');
-                tabPredict.classList.remove('tab-active');
-                tabPredict.classList.add('text-gray-500');
-            } else {
-                listPanel.classList.add('hidden');
-                predictPanel.classList.remove('hidden');
-                tabPredict.classList.add('tab-active');
-                tabList.classList.remove('tab-active');
-                tabList.classList.add('text-gray-500');
+        // ===== 仪表盘数据加载与渲染 =====
+        async function loadDashboardData() {
+            try {
+                // 并行加载所有仪表盘数据
+                const [statsRes, heatmapRes, distributionRes, districtsRes] = await Promise.all([
+                    apiCall('/api/dashboard/stats'),
+                    apiCall('/api/dashboard/heatmap'),
+                    apiCall('/api/dashboard/distribution'),
+                    apiCall('/api/dashboard/districts')
+                ]);
+
+                renderStatCards(statsRes.data);
+                renderHeatmapChart(heatmapRes.data);
+                renderDistributionChart(distributionRes.data);
+                renderDistrictsTable(districtsRes.data);
+            } catch (error) {
+                console.error('加载仪表盘数据失败:', error);
             }
         }
 
+        function renderStatCards(stats) {
+            if (!stats) return;
+
+            document.getElementById('stat-total').textContent = stats.total_houses?.toLocaleString() || '-';
+            document.getElementById('stat-avg-price').textContent = stats.avg_price ? `${stats.avg_price.toFixed(1)}万` : '-';
+            document.getElementById('stat-median-price').textContent = stats.median_price ? `${stats.median_price.toFixed(1)}万` : '-';
+            document.getElementById('stat-avg-unit').textContent = stats.avg_unit_price ? `${Math.round(stats.avg_unit_price)}元/㎡` : '-';
+            document.getElementById('stat-districts').textContent = stats.district_count || '-';
+            document.getElementById('stat-r2').textContent = stats.model_r2 ? stats.model_r2.toFixed(3) : '-';
+        }
+
+        function renderHeatmapChart(data) {
+            const chartDom = document.getElementById('heatmap-chart');
+            if (!chartDom) return;
+
+            const chart = echarts.init(chartDom);
+            chartInstances['heatmap'] = chart;
+
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    formatter: function(params) {
+                        const item = params[0];
+                        return `<strong>${item.name}</strong><br/>均价: ${(item.value / 10000).toFixed(1)}万<br/>房源数量: ${item.data.count || '-'}套`;
+                    }
+                },
+                grid: {
+                    left: '3%',
+                    right: '15%',
+                    bottom: '3%',
+                    top: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'value',
+                    name: '均价(万)',
+                    axisLabel: {
+                        formatter: val => (val / 10000).toFixed(0)
+                    }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: data.map(d => d.name),
+                    axisLabel: { fontSize: 12 }
+                },
+                series: [{
+                    type: 'bar',
+                    data: data.map((d, i) => ({
+                        value: d.avg_price,
+                        count: d.count,
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                                { offset: 0, color: '#3b82f6' },
+                                { offset: 0.5, color: '#8b5cf6' },
+                                { offset: 1, color: '#ef4444' }
+                            ]),
+                            borderRadius: [0, 6, 6, 0]
+                        }
+                    })),
+                    barWidth: '60%',
+                    label: {
+                        show: true,
+                        position: 'right',
+                        formatter: p => (p.value / 10000).toFixed(1) + '万',
+                        fontSize: 11,
+                        color: '#666'
+                    }
+                }],
+                animationDuration: 1000,
+                animationEasing: 'cubicOut'
+            };
+
+            chart.setOption(option);
+        }
+
+        function renderDistributionChart(data) {
+            const chartDom = document.getElementById('distribution-chart');
+            if (!chartDom) return;
+
+            const chart = echarts.init(chartDom);
+            chartInstances['distribution'] = chart;
+
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    formatter: params => {
+                        const item = params[0];
+                        return `${item.name}<br/>房源数量: ${item.value}套`;
+                    }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    top: '10%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: data.labels,
+                    axisLabel: { fontSize: 11, rotate: 30 }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '数量'
+                },
+                series: [{
+                    type: 'bar',
+                    data: data.counts.map((d, i) => ({
+                        value: d,
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: '#60a5fa' },
+                                { offset: 1, color: '#3b82f6' }
+                            ]),
+                            borderRadius: [6, 6, 0, 0]
+                        }
+                    })),
+                    barWidth: '70%'
+                }],
+                animationDuration: 1200
+            };
+
+            chart.setOption(option);
+        }
+
+        function renderDistrictsTable(data) {
+            const tbody = document.getElementById('districts-table-body');
+            if (!data || !tbody) return;
+
+            const total = data.reduce((sum, d) => sum + d.count, 0);
+
+            tbody.innerHTML = data.map(d => `
+                <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 font-medium text-gray-800">${d.district}</td>
+                    <td class="px-4 py-3 text-right font-semibold text-red-600">${(d.avg_price / 10000).toFixed(1)}</td>
+                    <td class="px-4 py-3 text-right text-gray-600">${(d.min_price / 10000).toFixed(1)}</td>
+                    <td class="px-4 py-3 text-right text-gray-600">${(d.max_price / 10000).toFixed(1)}</td>
+                    <td class="px-4 py-3 text-right text-gray-600">${d.count}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center">
+                            <div class="w-24 h-2 bg-gray-200 rounded-full overflow-hidden mr-2">
+                                <div class="h-full bg-blue-500 rounded-full" style="width: ${(d.count / total * 100).toFixed(1)}%"></div>
+                            </div>
+                            <span class="text-xs text-gray-500">${(d.count / total * 100).toFixed(1)}%</span>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // ===== 预测功能 =====
         document.getElementById('predict-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+
             const btn = document.getElementById('predict-btn');
             const resultDiv = document.getElementById('prediction-result');
-            
+            const explainPanel = document.getElementById('explanation-panel');
+
             btn.disabled = true;
-            btn.innerHTML = '<span class="loading"></span> 预测中...';
+            btn.innerHTML = '<span class="loading mr-2"></span>预测中...';
             resultDiv.classList.add('hidden');
-            
+            explainPanel.classList.add('hidden');
+
+            currentPredictionData = {
+                单价: parseFloat(document.getElementById('单价').value),
+                建筑面积: parseFloat(document.getElementById('建筑面积').value),
+                总楼层数: parseInt(document.getElementById('总楼层数').value),
+                室数: parseInt(document.getElementById('室数').value),
+                厅数: parseInt(document.getElementById('厅数').value),
+                卫数: parseInt(document.getElementById('卫数').value),
+                区: document.getElementById('区').value,
+                板块: document.getElementById('板块').value,
+                楼层位置: document.getElementById('楼层位置').value,
+                房屋朝向: document.getElementById('房屋朝向').value,
+                装修情况: document.getElementById('装修情况').value,
+                建筑类型: document.getElementById('建筑类型').value,
+                建筑结构: document.getElementById('建筑结构').value,
+                交易权属: document.getElementById('交易权属').value,
+                房屋用途: document.getElementById('房屋用途').value,
+                配备电梯: document.getElementById('配备电梯').value,
+                产权所属: document.getElementById('产权所属').value
+            };
+
             try {
-                const formData = {
-                    单价: parseFloat(document.getElementById('单价').value),
-                    建筑面积: parseFloat(document.getElementById('建筑面积').value),
-                    总楼层数: parseInt(document.getElementById('总楼层数').value),
-                    室数: parseInt(document.getElementById('室数').value),
-                    厅数: parseInt(document.getElementById('厅数').value),
-                    卫数: parseInt(document.getElementById('卫数').value),
-                    区: document.getElementById('区').value,
-                    板块: document.getElementById('板块').value,
-                    楼层位置: document.getElementById('楼层位置').value,
-                    房屋朝向: document.getElementById('房屋朝向').value,
-                    装修情况: document.getElementById('装修情况').value,
-                    建筑类型: document.getElementById('建筑类型').value,
-                    建筑结构: document.getElementById('建筑结构').value,
-                    交易权属: document.getElementById('交易权属').value,
-                    房屋用途: document.getElementById('房屋用途').value,
-                    配备电梯: document.getElementById('配备电梯').value,
-                    产权所属: document.getElementById('产权所属').value
-                };
-                
-                const response = await fetch('/api/predict', {
+                const result = await apiCall('/api/predict', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(currentPredictionData)
                 });
-                
-                const result = await response.json();
-                
+
                 if (result.error) {
                     alert('预测失败: ' + result.error);
                 } else {
-                    document.getElementById('predicted-price').textContent = '预测价格: ' + result.predicted_price_wan;
-                    document.getElementById('model-used').textContent = '使用模型: ' + result.model_used;
+                    document.getElementById('predicted-price').textContent = `¥${result.predicted_price_wan}`;
+                    document.getElementById('model-used').textContent = `使用模型: ${result.model_used}`;
                     resultDiv.classList.remove('hidden');
+
+                    // 平滑滚动到结果区域
+                    resultDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             } catch (error) {
                 alert('预测失败: ' + error.message);
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '预测价格';
+                btn.innerHTML = '🚀 开始预测';
             }
         });
 
+        // 显示预测解释（SHAP归因）
+        async function showPredictionExplanation() {
+            const explainBtn = document.getElementById('explain-btn');
+            const explainPanel = document.getElementById('explanation-panel');
+
+            explainBtn.disabled = true;
+            explainBtn.innerHTML = '<span class="loading mr-2"></span>分析中...';
+
+            try {
+                const result = await apiCall('/api/predict/explain', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(currentPredictionData)
+                });
+
+                explainPanel.classList.remove('hidden');
+
+                // API返回 {code, data: {shap_explanation, ...}}，渲染函数需要 data 内部结构
+                const explainData = result.data || result;
+
+                // 渲染正向/负向因素排行
+                renderFactorRanking(explainData);
+
+                // 渲染SHAP瀑布图
+                renderShapWaterfall(explainData);
+
+                explainPanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } catch (error) {
+                alert('获取AI解释失败: ' + error.message);
+            } finally {
+                explainBtn.disabled = false;
+                explainBtn.innerHTML = '🤖 查看 AI 解释';
+            }
+        }
+
+        function renderFactorRanking(data) {
+            const positiveContainer = document.getElementById('positive-factors');
+            const negativeContainer = document.getElementById('negative-factors');
+
+            // 兼容两种数据格式：直接shap_values或嵌套在shap_explanation中
+            let shapValues = data.shap_values || (data.shap_explanation && data.shap_explanation.feature_contributions);
+
+            if (!shapValues || !positiveContainer || !negativeContainer) return;
+
+            // 按SHAP值排序并分离正负
+            const sorted = [...shapValues].sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution));
+            const positive = sorted.filter(f => f.direction === 'positive').slice(0, 5);
+            const negative = sorted.filter(f => f.direction === 'negative').slice(0, 5);
+
+            positiveContainer.innerHTML = positive.length > 0 ? positive.map((f, i) => `
+                <div class="flex items-center justify-between bg-white rounded px-3 py-2 shadow-sm">
+                    <span class="text-sm"><strong>${i + 1}.</strong> ${f.feature}</span>
+                    <span class="text-red-600 font-semibold">+${(f.contribution / 10000).toFixed(2)}万</span>
+                </div>
+            `).join('') : '<p class="text-gray-500 text-sm">无显著正向因素</p>';
+
+            negativeContainer.innerHTML = negative.length > 0 ? negative.map((f, i) => `
+                <div class="flex items-center justify-between bg-white rounded px-3 py-2 shadow-sm">
+                    <span class="text-sm"><strong>${i + 1}.</strong> ${f.feature}</span>
+                    <span class="text-blue-600 font-semibold">${(f.contribution / 10000).toFixed(2)}万</span>
+                </div>
+            `).join('') : '<p class="text-gray-500 text-sm">无显著负向因素</p>';
+        }
+
+        function renderShapWaterfall(data) {
+            const chartDom = document.getElementById('shap-chart');
+            if (!chartDom) return;
+
+            // 兼容两种数据格式
+            let shapValues = data.shap_values || (data.shap_explanation && data.shap_explanation.feature_contributions);
+            if (!shapValues) return;
+
+            const chart = echarts.init(chartDom);
+            chartInstances['shap-waterfall'] = chart;
+
+            const values = [...shapValues].sort((a, b) => b.contribution - a.contribution);
+
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    formatter: params => {
+                        const item = params[0];
+                        return `${item.name}<br/>贡献值: ${(item.data.contribution / 10000).toFixed(2)}万`;
+                    }
+                },
+                grid: {
+                    left: '3%',
+                    right: '8%',
+                    bottom: '3%',
+                    top: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'value',
+                    axisLabel: {
+                        formatter: v => (v / 10000).toFixed(1) + '万'
+                    }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: values.map(v => v.feature),
+                    axisLabel: { fontSize: 11 }
+                },
+                series: [{
+                    type: 'bar',
+                    data: values.map(v => ({
+                        value: v.contribution,
+                        itemStyle: {
+                            color: v.direction === 'positive' ? '#ef4444' : '#3b82f6',
+                            borderRadius: v.direction === 'positive' ? [0, 4, 4, 0] : [4, 0, 0, 4]
+                        }
+                    })),
+                    barWidth: '65%',
+                    label: {
+                        show: true,
+                        position: p => p.value >= 0 ? 'right' : 'left',
+                        formatter: p => (p.value / 10000).toFixed(2),
+                        fontSize: 10,
+                        color: '#666'
+                    }
+                }],
+                animationDuration: 800
+            };
+
+            chart.setOption(option);
+        }
+
+        // ===== 模型分析中心 =====
+        async function loadModelAnalysisData() {
+            // 独立加载每个图表，避免一个失败导致全部不渲染
+            const loaders = [
+                { name: '模型对比', url: '/api/model/comparison', fn: renderModelComparisonChart },
+                { name: '散点图', url: '/api/model/scatter', fn: renderScatterChart },
+                { name: 'SHAP分析', url: '/api/model/shap/global', fn: renderShapGlobalChart }
+            ];
+
+            for (const loader of loaders) {
+                try {
+                    const res = await apiCall(loader.url);
+                    loader.fn(res.data);
+                    if (loader.name === '模型对比') renderModelTable(res.data);
+                } catch (error) {
+                    console.error(`加载${loader.name}数据失败:`, error);
+                }
+            }
+        }
+
+        function renderModelComparisonChart(data) {
+            const chartDom = document.getElementById('model-comparison-chart');
+            if (!chartDom || !data) return;
+
+            const chart = echarts.init(chartDom);
+            chartInstances['model-comparison'] = chart;
+
+            // 兼容两种数据格式：data.models 或 data 本身就是数组
+            const models = data.models || data;
+            if (!Array.isArray(models)) return;
+
+            const metrics = ['R2', 'MSE', 'MAE', 'RMSE'];
+            const metricNames = { R2: 'R²', MSE: 'MSE', MAE: 'MAE', RMSE: 'RMSE' };
+            const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+
+            const series = metrics.map((metric, idx) => ({
+                name: metricNames[metric],
+                type: 'bar',
+                data: models.map(m => m[metric] || 0),
+                itemStyle: { color: colors[idx], borderRadius: [4, 4, 0, 0] }
+            }));
+
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' }
+                },
+                legend: {
+                    data: metrics.map(m => metricNames[m]),
+                    top: 0
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    top: '15%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'category',
+                    data: models.map(m => m.name),
+                    axisLabel: { fontSize: 12 }
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '数值'
+                },
+                series: series,
+                animationDuration: 1000
+            };
+
+            chart.setOption(option);
+        }
+
+        function renderScatterChart(data) {
+            const chartDom = document.getElementById('scatter-chart');
+            if (!chartDom || !data) return;
+
+            const chart = echarts.init(chartDom);
+            chartInstances['scatter'] = chart;
+
+            const actual = data.actual || [];
+            const predicted = data.predicted || [];
+
+            // 计算最大最小值用于参考线
+            const allValues = [...actual, ...predicted];
+            const minVal = Math.min(...allValues);
+            const maxVal = Math.max(...allValues);
+
+            const option = {
+                tooltip: {
+                    trigger: 'item',
+                    formatter: params => {
+                        const idx = params.dataIndex;
+                        return `实际值: ${(actual[idx] / 10000).toFixed(1)}万<br/>预测值: ${(predicted[idx] / 10000).toFixed(1)}万`;
+                    }
+                },
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    top: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'value',
+                    name: '实际价格(万)',
+                    nameLocation: 'middle',
+                    nameGap: 30,
+                    axisLabel: {
+                        formatter: v => (v / 10000).toFixed(0)
+                    },
+                    min: minVal * 0.9,
+                    max: maxVal * 1.1
+                },
+                yAxis: {
+                    type: 'value',
+                    name: '预测价格(万)',
+                    nameLocation: 'middle',
+                    nameGap: 40,
+                    axisLabel: {
+                        formatter: v => (v / 10000).toFixed(0)
+                    },
+                    min: minVal * 0.9,
+                    max: maxVal * 1.1
+                },
+                series: [
+                    {
+                        name: '预测点',
+                        type: 'scatter',
+                        data: actual.map((a, i) => [a, predicted[i]]),
+                        symbolSize: 8,
+                        itemStyle: {
+                            color: '#3b82f6',
+                            opacity: 0.7
+                        }
+                    },
+                    {
+                        name: '参考线 y=x',
+                        type: 'line',
+                        data: [[minVal, minVal], [maxVal, maxVal]],
+                        lineStyle: { color: '#ef4444', type: 'dashed', width: 2 },
+                        symbol: 'none',
+                        tooltip: { show: false }
+                    }
+                ],
+                animationDuration: 1000
+            };
+
+            chart.setOption(option);
+        }
+
+        function renderShapGlobalChart(data) {
+            const chartDom = document.getElementById('shap-global-chart');
+            if (!chartDom || !data) return;
+
+            const chart = echarts.init(chartDom);
+            chartInstances['shap-global'] = chart;
+
+            const features = data.features || [];
+            const importance = data.importance || [];
+
+            const option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: { type: 'shadow' },
+                    formatter: params => {
+                        const item = params[0];
+                        return `<strong>${item.name}</strong><br/>重要性: ${item.value.toFixed(4)}`;
+                    }
+                },
+                grid: {
+                    left: '3%',
+                    right: '8%',
+                    bottom: '3%',
+                    top: '3%',
+                    containLabel: true
+                },
+                xAxis: {
+                    type: 'value',
+                    name: '平均|SHAP值|',
+                    nameLocation: 'middle',
+                    nameGap: 30
+                },
+                yAxis: {
+                    type: 'category',
+                    data: features,
+                    axisLabel: { fontSize: 11 }
+                },
+                series: [{
+                    type: 'bar',
+                    data: importance.map((val, i) => ({
+                        value: Math.abs(val),
+                        itemStyle: {
+                            color: val >= 0 ?
+                                new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                                    { offset: 0, color: '#fecaca' },
+                                    { offset: 1, color: '#ef4444' }
+                                ]) :
+                                new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                                    { offset: 0, color: '#bfdbfe' },
+                                    { offset: 1, color: '#3b82f6' }
+                                ]),
+                            borderRadius: [0, 6, 6, 0]
+                        }
+                    })),
+                    barWidth: '60%',
+                    label: {
+                        show: true,
+                        position: 'right',
+                        formatter: p => p.value.toFixed(3),
+                        fontSize: 10,
+                        color: '#666'
+                    }
+                }],
+                animationDuration: 1200,
+                animationEasing: 'elasticOut'
+            };
+
+            chart.setOption(option);
+        }
+
+        function renderModelTable(data) {
+            const tbody = document.getElementById('model-table-body');
+            if (!data || !tbody) return;
+
+            // 兼容两种数据格式：data.models 或 data 本身就是数组
+            const models = data.models || data;
+            if (!Array.isArray(models)) return;
+
+            tbody.innerHTML = models.map(m => `
+                <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-3 font-medium text-gray-800">${m.name}</td>
+                    <td class="px-4 py-3 text-right font-semibold ${m.R2 >= 0.9 ? 'text-green-600' : m.R2 >= 0.8 ? 'text-yellow-600' : 'text-red-600'}">${m.R2?.toFixed(4) || '-'}</td>
+                    <td class="px-4 py-3 text-right text-gray-600">${m.MSE?.toFixed(2) || '-'}</td>
+                    <td class="px-4 py-3 text-right text-gray-600">${m.MAE?.toFixed(2) || '-'}</td>
+                    <td class="px-4 py-3 text-right text-gray-600">${m.RMSE?.toFixed(2) || '-'}</td>
+                    <td class="px-4 py-3 text-gray-600">${m.training_time ? m.training_time.toFixed(2) + 's' : '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // ===== 房源管理模态框 =====
         function openModal(houseId = null) {
             editingHouseId = houseId;
             const modal = document.getElementById('house-modal');
             const title = document.getElementById('modal-title');
             const form = document.getElementById('house-form');
 
-            // 填充下拉选项
             populateFormSelects();
 
             if (houseId) {
@@ -498,7 +1493,6 @@
             } else {
                 title.textContent = '新增房源';
                 form.reset();
-                // 重置后恢复"请选择"占位
                 document.querySelectorAll('#house-form select').forEach(sel => sel.selectedIndex = 0);
             }
 
@@ -506,13 +1500,11 @@
             modal.classList.add('flex');
         }
 
-        // 用预测模型的特征选项填充表单中的下拉框
         function populateFormSelects() {
             const selectFields = ['区', '板块', '楼层位置', '房屋朝向', '装修情况', '建筑类型', '建筑结构', '配备电梯'];
             selectFields.forEach(field => {
                 const select = document.getElementById(`form-${field}`);
                 if (!select) return;
-                // 保留第一个"请选择"option
                 select.innerHTML = '<option value="">请选择</option>';
                 if (featureOptions[field]) {
                     featureOptions[field].forEach(opt => {
@@ -534,8 +1526,7 @@
 
         async function loadHouseData(houseId) {
             try {
-                const response = await fetch(`/api/houses/${houseId}`);
-                const house = await response.json();
+                const house = await apiCall(`/api/houses/${houseId}`);
 
                 const fields = ['总价', '单价', '小区名称', '所在区域', '房屋户型', '建筑面积',
                                '所在楼层', '户型结构', '套内面积', '建筑类型', '房屋朝向',
@@ -549,10 +1540,8 @@
                     if (!el || house[field] === null || house[field] === undefined) return;
 
                     if (selectFields.includes(field)) {
-                        // 下拉框：匹配option value
                         el.value = house[field];
                         if (el.value !== String(house[field])) {
-                            // 如果选项中没有，追加一个
                             const opt = document.createElement('option');
                             opt.value = house[field];
                             opt.textContent = house[field];
@@ -571,17 +1560,17 @@
 
         async function saveHouse(e) {
             e.preventDefault();
-            
+
             const btn = document.getElementById('submit-btn');
             btn.disabled = true;
-            btn.innerHTML = '<span class="loading"></span> 保存中...';
-            
+            btn.innerHTML = '<span class="loading mr-2"></span>保存中...';
+
             try {
-                const fields = ['总价', '单价', '小区名称', '所在区域', '房屋户型', '建筑面积', 
-                               '所在楼层', '户型结构', '套内面积', '建筑类型', '房屋朝向', 
-                               '建筑结构', '装修情况', '梯户比例', '配备电梯', '区', '板块', 
+                const fields = ['总价', '单价', '小区名称', '所在区域', '房屋户型', '建筑面积',
+                               '所在楼层', '户型结构', '套内面积', '建筑类型', '房屋朝向',
+                               '建筑结构', '装修情况', '梯户比例', '配备电梯', '区', '板块',
                                '楼层位置', '总楼层数', '室数', '厅数', '卫数'];
-                
+
                 const formData = {};
                 fields.forEach(field => {
                     const input = document.getElementById(`form-${field}`);
@@ -589,26 +1578,21 @@
                         formData[field] = input.value;
                     }
                 });
-                
+
                 let url = '/api/houses';
                 let method = 'POST';
-                
+
                 if (editingHouseId) {
                     url = `/api/houses/${editingHouseId}`;
                     method = 'PUT';
                 }
-                
-                const response = await fetch(url, {
+
+                await apiCall(url, {
                     method: method,
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
                 });
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || '保存失败');
-                }
-                
+
                 closeModal();
                 loadHouses(currentPage);
                 alert('保存成功！');
@@ -625,17 +1609,9 @@
             if (!confirm('确定要删除这条房源吗？')) {
                 return;
             }
-            
+
             try {
-                const response = await fetch(`/api/houses/${houseId}`, {
-                    method: 'DELETE'
-                });
-                
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.error || '删除失败');
-                }
-                
+                await apiCall(`/api/houses/${houseId}`, { method: 'DELETE' });
                 loadHouses(currentPage);
                 alert('删除成功！');
             } catch (error) {
@@ -644,12 +1620,26 @@
             }
         }
 
-        document.getElementById('house-form').addEventListener('submit', saveHouse);
+        // ===== 窗口大小变化时重绘图表 =====
+        window.addEventListener('resize', function() {
+            Object.values(chartInstances).forEach(chart => {
+                if (chart && !chart.isDisposed()) {
+                    chart.resize();
+                }
+            });
+        });
 
+        // ===== 初始化 =====
         document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
             loadDistricts();
             loadFeatureOptions();
             loadHouses(1);
+            document.getElementById('login-form').addEventListener('submit', doLogin);
+            document.getElementById('house-form').addEventListener('submit', saveHouse);
+
+            // 默认显示仪表盘
+            showTab('dashboard');
         });
     </script>
 </body>

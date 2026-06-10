@@ -51,6 +51,23 @@ def create_table(conn):
     '''
     cursor = conn.cursor()
     cursor.execute(create_table_sql)
+
+    create_users_sql = '''
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        role TEXT NOT NULL DEFAULT 'user'
+    )
+    '''
+    cursor.execute(create_users_sql)
+    conn.commit()
+
+def init_users(conn):
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT OR IGNORE INTO users (username, password, role) VALUES ('admin', 'admin123', 'admin')"
+    )
     conn.commit()
 
 def import_data(conn, data_path):
@@ -82,8 +99,11 @@ def main():
     
     print("\n2. 正在创建表结构...")
     create_table(conn)
-    
-    print("\n3. 正在导入数据...")
+
+    print("\n3. 正在初始化用户表...")
+    init_users(conn)
+
+    print("\n4. 正在导入数据...")
     count = import_data(conn, data_path)
     print(f"   已导入 {count} 条数据")
     

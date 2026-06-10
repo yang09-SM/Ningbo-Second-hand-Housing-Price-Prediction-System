@@ -1,0 +1,231 @@
+{
+  "baseValue": 2181686.71,
+  "outValue": 2354284.94,
+  "features": [
+    {
+      "name": "单价",
+      "value": -0.866,
+      "contribution": -974360.9972,
+      "direction": "negative",
+      "effect": 1207325.7127999999
+    },
+    {
+      "name": "建筑面积",
+      "value": 1.9295,
+      "contribution": 1102548.1674,
+      "direction": "positive",
+      "effect": 2309873.8801999995
+    },
+    {
+      "name": "总楼层数",
+      "value": -1.549,
+      "contribution": 984.5425,
+      "direction": "positive",
+      "effect": 2310858.4226999995
+    },
+    {
+      "name": "室数",
+      "value": 1.386,
+      "contribution": 44007.4318,
+      "direction": "positive",
+      "effect": 2354865.8544999994
+    },
+    {
+      "name": "厅数",
+      "value": 0.6759,
+      "contribution": 2441.3301,
+      "direction": "positive",
+      "effect": 2357307.1845999993
+    },
+    {
+      "name": "卫数",
+      "value": 1.0374,
+      "contribution": 29596.8311,
+      "direction": "positive",
+      "effect": 2386904.0156999994
+    },
+    {
+      "name": "区_encoded",
+      "value": 0.0267,
+      "contribution": -12483.2981,
+      "direction": "negative",
+      "effect": 2374420.7175999996
+    },
+    {
+      "name": "板块_encoded",
+      "value": 0.1599,
+      "contribution": -2231.8211,
+      "direction": "negative",
+      "effect": 2372188.8965
+    },
+    {
+      "name": "楼层位置_encoded",
+      "value": 0.0811,
+      "contribution": 739.0048,
+      "direction": "positive",
+      "effect": 2372927.9013
+    },
+    {
+      "name": "房屋朝向_encoded",
+      "value": -0.0788,
+      "contribution": 9.0468,
+      "direction": "positive",
+      "effect": 2372936.9481
+    },
+    {
+      "name": "装修情况_encoded",
+      "value": -1.7886,
+      "contribution": -12837.3377,
+      "direction": "negative",
+      "effect": 2360099.6104
+    },
+    {
+      "name": "建筑类型_encoded",
+      "value": -0.001,
+      "contribution": 4822.1599,
+      "direction": "positive",
+      "effect": 2364921.7703
+    },
+    {
+      "name": "建筑结构_encoded",
+      "value": 0.4817,
+      "contribution": 276.0098,
+      "direction": "positive",
+      "effect": 2365197.7801
+    },
+    {
+      "name": "交易权属_encoded",
+      "value": 2.9772,
+      "contribution": -5943.4473,
+      "direction": "negative",
+      "effect": 2359254.3328
+    },
+    {
+      "name": "房屋用途_encoded",
+      "value": 0.2085,
+      "contribution": -350.2446,
+      "direction": "negative",
+      "effect": 2358904.0882
+    },
+    {
+      "name": "配备电梯_encoded",
+      "value": -0.3329,
+      "contribution": -1622.5019,
+      "direction": "negative",
+      "effect": 2357281.5863
+    },
+    {
+      "name": "产权所属_encoded",
+      "value": 0.5989,
+      "contribution": -2996.6475,
+      "direction": "negative",
+      "effect": 2354284.9388
+    }
+  ],
+  "featureNames": [
+    {
+      "feature": "单价",
+      "value": -0.866,
+      "contribution": -974360.9972,
+      "direction": "negative"
+    },
+    {
+      "feature": "建筑面积",
+      "value": 1.9295,
+      "contribution": 1102548.1674,
+      "direction": "positive"
+    },
+    {
+      "feature": "总楼层数",
+      "value": -1.549,
+      "contribution": 984.5425,
+      "direction": "positive"
+    },
+    {
+      "feature": "室数",
+      "value": 1.386,
+      "contribution": 44007.4318,
+      "direction": "positive"
+    },
+    {
+      "feature": "厅数",
+      "value": 0.6759,
+      "contribution": 2441.3301,
+      "direction": "positive"
+    },
+    {
+      "feature": "卫数",
+      "value": 1.0374,
+      "contribution": 29596.8311,
+      "direction": "positive"
+    },
+    {
+      "feature": "区_encoded",
+      "value": 0.0267,
+      "contribution": -12483.2981,
+      "direction": "negative"
+    },
+    {
+      "feature": "板块_encoded",
+      "value": 0.1599,
+      "contribution": -2231.8211,
+      "direction": "negative"
+    },
+    {
+      "feature": "楼层位置_encoded",
+      "value": 0.0811,
+      "contribution": 739.0048,
+      "direction": "positive"
+    },
+    {
+      "feature": "房屋朝向_encoded",
+      "value": -0.0788,
+      "contribution": 9.0468,
+      "direction": "positive"
+    },
+    {
+      "feature": "装修情况_encoded",
+      "value": -1.7886,
+      "contribution": -12837.3377,
+      "direction": "negative"
+    },
+    {
+      "feature": "建筑类型_encoded",
+      "value": -0.001,
+      "contribution": 4822.1599,
+      "direction": "positive"
+    },
+    {
+      "feature": "建筑结构_encoded",
+      "value": 0.4817,
+      "contribution": 276.0098,
+      "direction": "positive"
+    },
+    {
+      "feature": "交易权属_encoded",
+      "value": 2.9772,
+      "contribution": -5943.4473,
+      "direction": "negative"
+    },
+    {
+      "feature": "房屋用途_encoded",
+      "value": 0.2085,
+      "contribution": -350.2446,
+      "direction": "negative"
+    },
+    {
+      "feature": "配备电梯_encoded",
+      "value": -0.3329,
+      "contribution": -1622.5019,
+      "direction": "negative"
+    },
+    {
+      "feature": "产权所属_encoded",
+      "value": 0.5989,
+      "contribution": -2996.6475,
+      "direction": "negative"
+    }
+  ],
+  "linkColor": "#b40000",
+  "linkLabel": "2354285"
+}

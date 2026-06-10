@@ -1,0 +1,121 @@
+{
+  "base_value": 2181686.71,
+  "prediction": 2354284.94,
+  "steps": [
+    {
+      "label": "基准值",
+      "value": 2181686.71,
+      "type": "base"
+    },
+    {
+      "label": "建筑面积",
+      "value": 1102548.17,
+      "type": "positive",
+      "cumulative": 3284234.88,
+      "feature_value": 1.9295
+    },
+    {
+      "label": "单价",
+      "value": -974361.0,
+      "type": "negative",
+      "cumulative": 2309873.88,
+      "feature_value": -0.866
+    },
+    {
+      "label": "室数",
+      "value": 44007.43,
+      "type": "positive",
+      "cumulative": 2353881.31,
+      "feature_value": 1.386
+    },
+    {
+      "label": "卫数",
+      "value": 29596.83,
+      "type": "positive",
+      "cumulative": 2383478.14,
+      "feature_value": 1.0374
+    },
+    {
+      "label": "装修情况_encoded",
+      "value": -12837.34,
+      "type": "negative",
+      "cumulative": 2370640.81,
+      "feature_value": -1.7886
+    },
+    {
+      "label": "区_encoded",
+      "value": -12483.3,
+      "type": "negative",
+      "cumulative": 2358157.51,
+      "feature_value": 0.0267
+    },
+    {
+      "label": "交易权属_encoded",
+      "value": -5943.45,
+      "type": "negative",
+      "cumulative": 2352214.06,
+      "feature_value": 2.9772
+    },
+    {
+      "label": "建筑类型_encoded",
+      "value": 4822.16,
+      "type": "positive",
+      "cumulative": 2357036.22,
+      "feature_value": -0.001
+    },
+    {
+      "label": "产权所属_encoded",
+      "value": -2996.65,
+      "type": "negative",
+      "cumulative": 2354039.57,
+      "feature_value": 0.5989
+    },
+    {
+      "label": "厅数",
+      "value": 2441.33,
+      "type": "positive",
+      "cumulative": 2356480.9,
+      "feature_value": 0.6759
+    },
+    {
+      "label": "板块_encoded",
+      "value": -2231.82,
+      "type": "negative",
+      "cumulative": 2354249.08,
+      "feature_value": 0.1599
+    },
+    {
+      "label": "配备电梯_encoded",
+      "value": -1622.5,
+      "type": "negative",
+      "cumulative": 2352626.58,
+      "feature_value": -0.3329
+    },
+    {
+      "label": "总楼层数",
+      "value": 984.54,
+      "type": "positive",
+      "cumulative": 2353611.12,
+      "feature_value": -1.549
+    },
+    {
+      "label": "楼层位置_encoded",
+      "value": 739.0,
+      "type": "positive",
+      "cumulative": 2354350.13,
+      "feature_value": 0.0811
+    },
+    {
+      "label": "房屋用途_encoded",
+      "value": -350.24,
+      "type": "negative",
+      "cumulative": 2353999.88,
+      "feature_value": 0.2085
+    },
+    {
+      "label": "预测值",
+      "value": 2354284.94,
+      "type": "total"
+    }
+  ]
+}

@@ -127,6 +127,61 @@ def feature_engineering(df):
     
     return df_feat
 
+def create_cross_features(df):
+    """创建有意义的交叉特征"""
+    df_new = df.copy()
+
+    # 面积相关
+    if '建筑面积' in df_new.columns and '室数' in df_new.columns:
+        df_new['人均面积'] = df_new['建筑面积'] / (df_new['室数'] + 1)  # +1避免除零
+
+    if '建筑面积' in df_new.columns and '总楼层数' in df_new.columns:
+        df_new['楼层密度'] = df_new['建筑面积'] / (df_new['总楼层数'] + 1)
+
+    # 房间配置比
+    if '厅数' in df_new.columns and '室数' in df_new.columns:
+        df_new['厅室比'] = df_new['厅数'] / (df_new['室数'] + 1)
+
+    if '卫数' in df_new.columns and '室数' in df_new.columns:
+        df_new['卫室比'] = df_new['卫数'] / (df_new['室数'] + 1)
+
+    # 总房间数
+    room_cols = [c for c in ['室数', '厅数', '卫数'] if c in df_new.columns]
+    if len(room_cols) >= 2:
+        df_new['总房间数'] = df_new[room_cols].sum(axis=1, skipna=True)
+
+    # 单价等级（分桶）
+    if '单价' in df_new.columns:
+        df_new['单价等级'] = pd.cut(df_new['单价'], bins=5, labels=False, duplicates='drop').fillna(0).astype(int)
+
+    # 面积等级（分桶）
+    if '建筑面积' in df_new.columns:
+        df_new['面积等级'] = pd.cut(df_new['建筑面积'], bins=5, labels=False, duplicates='drop').fillna(2).astype(int)
+
+    return df_new
+
+def create_region_features(df):
+    """基于区域聚合的统计特征"""
+    df_new = df.copy()
+
+    if '区' in df_new.columns and '总价' in df_new.columns:
+        # 各区域均价
+        region_stats = df_new.groupby('区')['总价'].agg(['mean', 'median', 'std', 'count'])
+        region_stats.columns = ['区域均价', '区域中位价', '区域价格标准差', '区域房源数']
+        region_stats = region_stats.reset_index()
+
+        df_new = df_new.merge(region_stats, on='区', how='left')
+
+        # 相对价格（该房源价格 / 该区域均价）
+        df_new['相对价格指数'] = df_new['总价'] / (df_new['区域均价'] + 1)
+
+        # 填充可能的 NaN
+        for col in ['区域均价', '区域中位价', '区域价格标准差', '区域房源数', '相对价格指数']:
+            if col in df_new.columns:
+                df_new[col] = df_new[col].fillna(df_new[col].median())
+
+    return df_new
+
 def encode_features(df, target_col='总价'):
     df_encode = df.copy()
     
@@ -145,12 +200,20 @@ def encode_features(df, target_col='总价'):
 
 def select_features(df, target_col='总价'):
     feature_cols = []
-    
+
     numeric_features = ['单价', '建筑面积', '总楼层数', '室数', '厅数', '卫数']
     for col in numeric_features:
         if col in df.columns:
             feature_cols.append(col)
-    
+
+    # 新增的高级特征工程数值特征
+    advanced_numeric_features = ['人均面积', '楼层密度', '厅室比', '卫室比', '总房间数',
+                                  '单价等级', '面积等级', '区域均价', '区域中位价',
+                                  '区域价格标准差', '区域房源数', '相对价格指数']
+    for col in advanced_numeric_features:
+        if col in df.columns:
+            feature_cols.append(col)
+
     encoded_features = [col for col in df.columns if col.endswith('_encoded')]
     feature_cols.extend(encoded_features)
     
@@ -195,25 +258,35 @@ def main():
     
     print("\n3. 正在进行特征工程...")
     df_feat = feature_engineering(df_clean)
-    print("   特征工程完成")
-    
-    print("\n4. 正在编码分类变量...")
-    df_encoded, label_encoders = encode_features(df_feat)
+    print("   基础特征工程完成")
+
+    print("\n4. 正在创建高级交叉特征...")
+    df_cross = create_cross_features(df_feat)
+    cross_new_cols = [c for c in df_cross.columns if c not in df_feat.columns]
+    print(f"   新增 {len(cross_new_cols)} 个交叉特征: {', '.join(cross_new_cols)}")
+
+    print("\n5. 正在创建区域统计特征...")
+    df_region = create_region_features(df_cross)
+    region_new_cols = [c for c in df_region.columns if c not in df_cross.columns]
+    print(f"   新增 {len(region_new_cols)} 个区域统计特征: {', '.join(region_new_cols)}")
+
+    print("\n6. 正在编码分类变量...")
+    df_encoded, label_encoders = encode_features(df_region)
     print(f"   编码完成, 生成了 {len(label_encoders)} 个标签编码器")
-    
-    print("\n5. 正在选择重要特征...")
+
+    print("\n7. 正在选择重要特征...")
     df_selected, feature_cols = select_features(df_encoded)
     print(f"   选择了 {len(feature_cols)} 个特征用于预测")
     print(f"   特征列表: {', '.join(feature_cols)}")
-    
-    print("\n6. 正在准备数据库数据...")
-    df_db = prepare_db_data(df_feat)
-    
-    print("\n7. 正在保存处理后的数据...")
+
+    print("\n8. 正在准备数据库数据...")
+    df_db = prepare_db_data(df_region)
+
+    print("\n9. 正在保存处理后的数据...")
     df_selected.to_csv(processed_path, index=False, encoding='utf-8-sig')
     df_db.to_csv(db_path, index=False, encoding='utf-8-sig')
-    
-    print("\n8. 正在保存标签编码器...")
+
+    print("\n10. 正在保存标签编码器...")
     joblib.dump(label_encoders, os.path.join('models', 'label_encoders.joblib'))
     
     print(f"\n" + "=" * 80)
